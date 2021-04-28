@@ -1,0 +1,14 @@
+Memoria compartida
+
+1) shm_open() -> Creamos la entrada
+
+2) ftruncate() -> Damos el tamaño
+
+3) mmap() -> Cada proceso mapea la Memoria
+
+4) usamos la memoria normalmente (como si proviniera
+        de un calloc())
+
+5) munmap() -> Cada proceso desmapea la memoria
+
+6) shm_unlink() -> Liberamos el recurso y borramos el archivo

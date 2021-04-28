@@ -1,0 +1,12 @@
+Semaforos
+
+1) Abrir el archivo -> sem_open()
+
+2) Lo usamos
+  a) sem_wait() -> sem_trywait() o sem_timedwait()
+  b) sem_post()
+  c) sem_getvalue()
+
+3) Liberar el Semaforo
+  a) sem_close()
+  b) sem_unlink()
