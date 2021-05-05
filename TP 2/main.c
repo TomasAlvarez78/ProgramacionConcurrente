@@ -1,53 +1,49 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <sys/wait.h>
 #include <string.h>
+#include <fcntl.h>
+#include <time.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/mman.h>
 
-sem_t sem[4];
+#define PEDIDOS 10
+struct boundedBuffer_t {
+  int inicio, fin, localAbierto;
+  int buf[PEDIDOS];
+  sem_t *lleno, *vacio, *leyendo, *escribiendo,*cocina;
+};
+
 
 void* telefono(void* arg);
 void* encargado(void* arg);
 void* cocinero(void* arg);
 void* delivery(void* arg);
 
+void inicializar(pthread_t *th,struct boundedBuffer_t * bb);
+int destruirSemaforos(struct boundedBuffer_t * bb);
 int estadoLocal;
-/*
-    int estadodel;
-    sem_getvalue(&sem[3],&estadodel);
-*/
 
 int main(int argc, char* v[]){
-    printf("Hola!\n");
-    pthread_t *th;
-    /*
-    1 - telefono
-    2 - encargado
-    3 - cocinero
-    4 - cocinero
-    5 - delivery
-    6 - delivery
-    7 - delivery
-    */
+    struct boundedBuffer_t* bb = NULL;
+    pthread_t* th;
+    inicializar(th,bb);
     th = (pthread_t *)(calloc(7,sizeof(pthread_t)));
-
-    for (int i = 0; i < 4; i++)
+    //Creacion de threads
+    printf("Holi");
+    pthread_create(&th[0], NULL, encargado, (void*)bb);
+    printf("Holiwi");
+    pthread_create(&th[1], NULL, telefono, (void*)bb);
+    for (int i = 2; i < 5; i++)
     {
-        if(i == 1){
-            sem_init(&sem[i],0,1);
-        }else{
-            sem_init(&sem[i],0,0);
-        }
+       pthread_create(&th[i], NULL, cocinero, (void*)bb);
     }
-    pthread_create(&th[0], NULL, encargado, NULL);
-    pthread_create(&th[1], NULL, telefono, NULL);
-    pthread_create(&th[2], NULL, cocinero, NULL);
-    pthread_create(&th[3], NULL, cocinero, NULL);
-    for (int i = 4; i < 8; i++)
+    for (int i = 5; i < 7; i++)
     {
-       pthread_create(&th[i], NULL, delivery, NULL);
+       pthread_create(&th[i], NULL, delivery, (void*)bb);
     }
     
     for (int i = 0; i < 7; i++)
@@ -57,17 +53,240 @@ int main(int argc, char* v[]){
 
     printf("Soy el main thread");
 
-    for (int i = 0; i < 4; i++)
-    {
-        sem_destroy(&sem[i]);
-    }
+    destruirSemaforos(bb);
+
+    free(bb);
+    free(th);
 
     return 0;
 }
 
+void inicializar(pthread_t *th,struct boundedBuffer_t * bb){
+    int error = 0;
+
+    //Inicializacion punteros
+    
+    bb = (struct BoundedBuffer_t * )(calloc(1,sizeof(struct boundedBuffer_t)));
+
+    //Inicializacion BoundedBuffer
+    bb->inicio=0;
+    bb->fin=0;
+    bb->localAbierto=1;
+    printf("asd");
+    bb->lleno = sem_open("/lleno", O_CREAT, 0640, 0);
+    if (bb->lleno != SEM_FAILED) {
+        printf("Semaforo [lleno] creado!\n");
+    }
+    else {
+        perror("sem_open()");
+        error -= 1;
+    }
+    bb->vacio = sem_open("/vacio", O_CREAT, 0640, PEDIDOS);
+    if (bb->vacio != SEM_FAILED) {
+        printf("Semaforo [vacio] creado!\n");
+    }
+    else {
+        perror("sem_open()");
+        error -= 1;
+    }
+    bb->leyendo = sem_open("/leyendo", O_CREAT, 0640, 1);
+    if (bb->leyendo != SEM_FAILED) {
+        printf("Semaforo [leyendo] creado!\n");
+    }
+    else {
+        perror("sem_open()");
+        error -= 1;
+    }
+    bb->cocina = sem_open("/cocina", O_CREAT, 0640, 0);
+    if (bb->cocina != SEM_FAILED) {
+        printf("Semaforo [cocina] creado!\n");
+    }
+    else {
+        perror("sem_open()");
+        error -= 1;
+    }
+    bb->escribiendo = sem_open("/escribiendo", O_CREAT, 0640, 1);
+    if (bb->escribiendo != SEM_FAILED) {
+        printf("Semaforo [escribiendo] creado!\n");
+    }
+    else {
+        perror("sem_open()");
+        error -= 1;
+    }
+    printf("asd");
+}
+
+int destruirSemaforos(struct boundedBuffer_t* bb){
+    int error = 0,status;
+    status = sem_close(bb->lleno);
+    if (!status) {
+        status = sem_unlink("/lleno");
+        if (!status)
+            printf("Semaforo [lleno] borrado!\n");
+        else {
+            perror("sem_unlink()");
+        error -= 1;
+        }
+    }
+    else {
+        perror("sem_close()");
+        error -= 1;
+    }
+    status = sem_close(bb->vacio);
+    if (!status) {
+        status = sem_unlink("/vacio");
+        if (!status)
+        printf("Semaforo [vacio] borrado!\n");
+        else {
+        perror("sem_unlink()");
+        error -= 1;
+        }
+    }
+    else {
+        perror("sem_close()");
+        error -= 1;
+    }
+    status = sem_close(bb->escribiendo);
+    if (!status) {
+        status = sem_unlink("/escribiendo");
+        if (!status)
+        printf("Semaforo [escribiendo] borrado!\n");
+        else {
+        perror("sem_unlink()");
+        error -= 1;
+        }
+    }
+    else {
+        perror("sem_close()");
+        error -= 1;
+    }
+    status = sem_close(bb->leyendo);
+    if (!status) {
+        status = sem_unlink("/leyendo");
+        if (!status)
+        printf("Semaforo [leyendo] borrado!\n");
+        else {
+        perror("sem_unlink()");
+        error -= 1;
+        }
+    }
+    else {
+        perror("sem_close()");
+        error -= 1;
+    }
+    status = sem_close(bb->cocina);
+    if (!status) {
+        status = sem_unlink("/cocina");
+        if (!status)
+        printf("Semaforo [cocina] borrado!\n");
+        else {
+        perror("sem_unlink()");
+        error -= 1;
+        }
+    }
+    else {
+        perror("sem_close()");
+        error -= 1;
+    }
+    return error;
+}
 
 void* telefono(void* arg){
-    //int* x = (int*)arg;
+    struct boundedBuffer_t* bb = (struct boundedBuffer_t*) arg;
+    int error;
+    while(bb->localAbierto)
+    {
+        time_t t;
+        srand((unsigned) time(&t));
+        int espera = rand() % (5) + 1;
+        usleep(100000 * espera);
+        printf("TELEFONO ----> Sono el telefono!\n");
+        error = sem_wait(bb->vacio);
+        if (!error) {
+            error = sem_wait(bb->escribiendo);
+        }
+        if(!error){
+            bb->buf[bb->fin] = (rand() % 5) + 1;
+            printf("Menu numero: %02d\n",bb->buf[bb->fin]);
+            bb->fin = ++bb->fin % PEDIDOS;
+            error = sem_post(bb->escribiendo);
+        }
+        if (!error) {
+            error = sem_post(bb->lleno);
+            usleep(rand() % 2000000);
+        }
+    }
+
+    pthread_exit(NULL);
+}
+/*
+    lleno = 0
+    vacio = pedidos - 10
+    escribiendo = 1
+    leyendo = 1
+*/
+void* encargado(void* arg){
+    struct boundedBuffer_t* bb = (struct boundedBuffer_t*) arg;
+    int error,leido;
+    while(bb->localAbierto)
+    {
+        time_t t;
+        srand((unsigned) time(&t));
+        int espera = rand() % (5) + 1;
+        usleep(100000 * espera);
+        printf("ENCARGADO ----> Esperando llamada!\n");
+
+        error = sem_trywait(bb->lleno);
+        if(!error){
+            error = sem_wait(bb->leyendo);
+        }
+        if(!error){
+            leido = bb->buf[bb->inicio];
+            if(leido > 0){
+                printf("Es hora de trabajar\n");
+                error = sem_post(bb->cocina);
+                if(error){
+                    perror("sem_post(cocina)");
+                }
+            }
+            bb->inicio = ++bb->inicio % PEDIDOS;
+            error = sem_post(bb->leyendo);
+        }
+        
+    }
+
+    pthread_exit(NULL);
+}
+void* cocinero(void* arg){
+    struct boundedBuffer_t* bb = (struct boundedBuffer_t*) arg;
+    while(bb->localAbierto)
+    {
+        time_t t;
+        srand((unsigned) time(&t));
+        int espera = rand() % (5) + 1;
+        usleep(100000 * espera);
+        printf("COCINERO ESPERANDO \n");
+
+        
+    }
+    pthread_exit(NULL);
+}
+void* delivery(void* arg){
+    struct boundedBuffer_t* bb = (struct boundedBuffer_t*) arg;
+    while(bb->localAbierto)
+    {
+        time_t t;
+        srand((unsigned) time(&t));
+        int espera = rand() % (5) + 1;
+        usleep(100000 * espera);
+        printf("COCINERO ESPERANDO \n");
+
+        
+    }
+    pthread_exit(NULL);
+}
+/*
+void* telefono(void* arg){
     for (int i = 0; i < 3; i++)
     {
         sem_wait(&sem[0]);
@@ -83,7 +302,6 @@ void* telefono(void* arg){
 }
 
 void* encargado(void* arg){
-    //int* x = (int*)arg;
     while(estadoLocal)
     {
         sem_wait(&sem[1]);
@@ -100,31 +318,4 @@ void* encargado(void* arg){
     pthread_exit(NULL);
 }
 
-void* cocinero(void* arg){
-    //int* x = (int*)arg;
-    for (int i = 0; i < 3; i++)
-    {
-        sem_wait(&sem[2]);
-        
-        printf("3 - Cocinero trabajando\n");
-        time_t t;
-        srand((unsigned) time(&t));
-        int espera = rand() % (3) + 1;
-        usleep(100000 * espera);        
-        sem_post(&sem[3]);       
-    }
-    pthread_exit(NULL);
-}
-void* delivery(void* arg){
-    //int* x = (int*)arg;
-    for (int i = 0; i < 3; i++)
-    {
-        sem_wait(&sem[3]);
-        printf("4 - Delivery trabajando\n");
-        usleep(100000);
-        printf("4 - Delivery dando dinero\n");
-        usleep(100000);
-        sem_post(&sem[1]);
-    }
-    pthread_exit(NULL);
-}
+*/
