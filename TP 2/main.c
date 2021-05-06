@@ -23,19 +23,18 @@ void* encargado(void* arg);
 void* cocinero(void* arg);
 void* delivery(void* arg);
 
-void inicializar(pthread_t *th,struct boundedBuffer_t * bb);
+void inicializar(struct boundedBuffer_t * bb);
 int destruirSemaforos(struct boundedBuffer_t * bb);
 int estadoLocal;
 
 int main(int argc, char* v[]){
     struct boundedBuffer_t* bb = NULL;
     pthread_t* th;
-    inicializar(th,bb);
     th = (pthread_t *)(calloc(7,sizeof(pthread_t)));
+
+    inicializar(&bb);
     //Creacion de threads
-    printf("Holi");
     pthread_create(&th[0], NULL, encargado, (void*)bb);
-    printf("Holiwi");
     pthread_create(&th[1], NULL, telefono, (void*)bb);
     for (int i = 2; i < 5; i++)
     {
@@ -61,16 +60,14 @@ int main(int argc, char* v[]){
     return 0;
 }
 
-void inicializar(pthread_t *th,struct boundedBuffer_t * bb){
+void inicializar(struct boundedBuffer_t * bb){
     int error = 0;
 
     //Inicializacion punteros
     
-    bb = (struct BoundedBuffer_t * )(calloc(1,sizeof(struct boundedBuffer_t)));
+    bb = (struct BoundedBuffer_t ** )(calloc(1,sizeof(struct boundedBuffer_t)));
 
     //Inicializacion BoundedBuffer
-    bb->inicio=0;
-    bb->fin=0;
     bb->localAbierto=1;
     printf("asd");
     bb->lleno = sem_open("/lleno", O_CREAT, 0640, 0);
