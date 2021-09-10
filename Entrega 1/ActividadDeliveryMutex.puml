@@ -1,0 +1,11 @@
+@startuml pizza
+
+[*] --> Encargado
+[*] --> Telefono
+Telefono -> Encargado : Encargo
+Encargado -> Cocinero : Pedido
+Cocinero --> Delivery : Entrega
+Delivery --> Encargado : Cobro
+Encargado --> [*]
+
+@enduml

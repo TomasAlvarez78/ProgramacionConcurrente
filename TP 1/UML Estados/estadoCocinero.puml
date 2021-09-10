@@ -1,0 +1,7 @@
+@startuml EstadoCocinero
+(*)--> [preparandose()] Preparado
+--> [recibirPedido()] Recibiendo
+--> [cocinar()] Cocinando
+--> [entregarDelivery()] Entregando
+--> (*)
+@enduml

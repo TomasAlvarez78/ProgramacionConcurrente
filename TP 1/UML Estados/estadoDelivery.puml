@@ -1,0 +1,7 @@
+@startuml EstadoDelivery
+(*)--> [preparandose()] Preparado
+--> [recibirPedido()] Recibiendo
+--> [entregarPedido()] Entregando
+--> [entregarDinero()] Pagando
+--> (*)
+@enduml

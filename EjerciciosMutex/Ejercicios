@@ -1,0 +1,15 @@
+Realizar un programa que busca el valor máximo de un arreglo de datos. 
+El tamaño del arreglo lo determina el usuario ingresándolo por teclado.
+
+El arreglo contendrá valores aleatorios entre 0 y P-1 y 
+el valor máximo P deberá colocarse en una posición aleatoria del arreglo.
+
+La búsqueda debe realizarse mediante una función que reciba por parámetro las posiciones inicial y final.
+ El valor máximo estará contenido en una variable común (compartida) entre todos los hilos.
+
+El programa deberá entregarse en las siguientes versiones:
+
+Proceso secuencial,
+Proceso para n hilos, con n entre 2 y 9.
+La versión para n hilos debe distribuir equitativamente la tarea de búsqueda entre todos los hilos. 
+El acceso a la variable donde se almacena la posición del valor máximo debe controlarse mediante la utilización de un MUTEX.
